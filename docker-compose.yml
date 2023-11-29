@@ -1,0 +1,9 @@
+version: "3.3"
+
+services:
+  tcp_server:
+    build: ./tcp_server
+    ports:
+      - 81:8081
+  tcp_client:
+    build: ./tcp_client

@@ -1,0 +1,6 @@
+go 1.21.0
+
+use (
+	./tcp_client
+	./tcp_server
+)
