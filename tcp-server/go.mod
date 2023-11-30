@@ -1,4 +1,4 @@
-module github.com/pullya/wow_tcp_server/tcp_server
+module github.com/pullya/wow_tcp_server/tcp-server
 
 go 1.21.0
 
