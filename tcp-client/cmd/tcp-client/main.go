@@ -4,23 +4,26 @@ import (
 	"bufio"
 	"fmt"
 	"net"
-	"os"
+	"time"
 )
 
 func main() {
 	//ctx := context.Background()
 
-	// Подключаемся к сокету
-	conn, _ := net.Dial("tcp", "127.0.0.1:8081")
-	for {
-		// Чтение входных данных от stdin
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Text to send: ")
-		text, _ := reader.ReadString('\n')
-		// Отправляем в socket
-		fmt.Fprintf(conn, text+"\n")
-		// Прослушиваем ответ
-		message, _ := bufio.NewReader(conn).ReadString('\n')
-		fmt.Print("Message from server: " + message)
+	for i := 0; i < 10; i++ {
+		go func() {
+			conn, err := net.Dial("tcp", "tcp_server:8081")
+			if err != nil {
+				fmt.Println("Error while establishing connection to tcp-server: ", err)
+				return
+			}
+			defer conn.Close()
+
+			request := "request1\n"
+			fmt.Fprintf(conn, request+"\n")
+			message, _ := bufio.NewReader(conn).ReadString('\n')
+			fmt.Print("Message from server: " + message)
+		}()
+		time.Sleep(5 * time.Second)
 	}
 }

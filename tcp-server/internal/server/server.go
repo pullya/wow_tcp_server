@@ -2,13 +2,13 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net"
-
-	"github.com/rs/zerolog/log"
 )
 
-type Server interface {
-	RunServer(ctx context.Context) (net.Conn, error)
+//go:generate mockery --name=IServer --output=mocks --case=underscore
+type IServer interface {
+	RunServer(ctx context.Context) (net.Listener, error)
 }
 
 type TcpServer struct {
@@ -21,18 +21,13 @@ func NewTcpServer(port string) TcpServer {
 	}
 }
 
-func (ts TcpServer) RunServer(ctx context.Context) (net.Conn, error) {
-	log.Info().Msg("Launching tcp-server...")
+func (ts TcpServer) RunServer(ctx context.Context) (net.Listener, error) {
+	fmt.Println("Launching tcp-server...")
 
 	listener, err := net.Listen("tcp", ts.Port)
 	if err != nil {
 		return nil, err
 	}
 
-	conn, err := listener.Accept()
-	if err != nil {
-		return nil, err
-	}
-
-	return conn, nil
+	return listener, nil
 }
