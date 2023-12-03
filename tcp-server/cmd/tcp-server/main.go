@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	service "github.com/pullya/wow_tcp_server/tcp-server/internal/app"
 	"github.com/pullya/wow_tcp_server/tcp-server/internal/config"
 	"github.com/pullya/wow_tcp_server/tcp-server/internal/server"
 	"github.com/pullya/wow_tcp_server/tcp-server/internal/storage"
-	"github.com/rs/zerolog/log"
 )
 
 func main() {
@@ -21,6 +21,7 @@ func main() {
 
 	err := wowService.Run(ctx)
 	if err != nil {
-		log.Fatal().Str("service", "wow-service").Msgf("Error while starting service: %v", err)
+		fmt.Println("Error while starting service:", err)
+		return
 	}
 }

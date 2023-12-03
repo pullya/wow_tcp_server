@@ -1,32 +1,24 @@
 # Builder
 
-FROM golang:1.16-alpine AS builder
-RUN apk add --update make git curl gcc
+FROM golang:1.21-alpine AS builder
+WORKDIR /usr/local/src
 
-ARG GITHUB_PATH=github.com/pullya/wow_tcp_server/tcp-server
+RUN apk --no-cache add bash make git curl gcc musl-dev
 
-COPY Makefile /home/${GITHUB_PATH}/Makefile
-COPY go.mod /home/${GITHUB_PATH}/go.mod
-COPY go.sum /home/${GITHUB_PATH}/go.sum
-COPY ./ ./
+COPY Makefile ./
+COPY go.mod ./
+COPY go.sum ./
 
-WORKDIR /home/${GITHUB_PATH}
-COPY . /home/${GITHUB_PATH}
-RUN make build
+RUN go mod download
+
+COPY . ./
+RUN go build -o ./bin/tcp-server cmd/tcp-server/main.go
 
 # TCP Server
 
-FROM alpine:latest as server
-LABEL org.opencontainers.image.source https://${GITHUB_PATH}
-RUN apk --no-cache add ca-certificates
-WORKDIR /root/
+FROM alpine:latest AS server
+COPY --from=builder /usr/local/src/bin/tcp-server /
 
-ARG GITHUB_PATH=github.com/pullya/wow_tcp_server/tcp-server
-
-# COPY --from=builder /home/${GITHUB_PATH}/bin/tcp-server .
-
-# RUN chown root:root tcp-server
+CMD ["/tcp-server"]
 
 EXPOSE 8081
-
-CMD ["./tcp-server"]
