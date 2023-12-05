@@ -3,24 +3,48 @@ package client
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"net"
-	"os"
 )
 
-func RunClient(_ context.Context) error {
-	conn, _ := net.Dial("tcp", "127.0.0.1:8081")
-	for {
-		// Чтение входных данных от stdin
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Print("Text to send: ")
-		text, _ := reader.ReadString('\n')
-		// Отправляем в socket
-		fmt.Fprintf(conn, text+"\n")
-		// Прослушиваем ответ
-		message, _ := bufio.NewReader(conn).ReadString('\n')
-		fmt.Print("Message from server: " + message)
+type IClient interface {
+	RunClient(ctx context.Context) error
+	SendMessage(ctx context.Context, mess []byte) error
+	ReceiveMessage(ctx context.Context) (string, error)
+	CloseConn()
+}
+
+type Client struct {
+	Address string
+	Conn    net.Conn
+}
+
+func NewClient(addr string) Client {
+	return Client{
+		Address: addr,
+	}
+}
+
+func (c *Client) RunClient(ctx context.Context) error {
+	conn, err := net.Dial("tcp", c.Address)
+	if err != nil {
+		return err
+	}
+	c.Conn = conn
+	return nil
+}
+
+func (c *Client) SendMessage(ctx context.Context, mess []byte) error {
+	if _, err := c.Conn.Write(mess); err != nil {
+		return err
 	}
 
-	//return nil
+	return nil
+}
+
+func (c *Client) ReceiveMessage(ctx context.Context) (string, error) {
+	return bufio.NewReader(c.Conn).ReadString('\n')
+}
+
+func (c *Client) CloseConn() {
+	c.Conn.Close()
 }
