@@ -1,18 +1,25 @@
 package server
 
 import (
+	"bufio"
 	"context"
-	"fmt"
 	"net"
+
+	"github.com/pullya/wow_tcp_server/tcp-server/internal/config"
+	log "github.com/sirupsen/logrus"
 )
 
-//go:generate mockery --name=IServer --output=mocks --case=underscore
 type IServer interface {
 	RunServer(ctx context.Context) (net.Listener, error)
+	SendMessage(ctx context.Context, mess []byte) error
+	ReceiveMessage(ctx context.Context) (string, error)
+	SetConn(conn net.Conn)
+	CloseConn()
 }
 
 type TcpServer struct {
 	Port string
+	Conn net.Conn
 }
 
 func NewTcpServer(port string) TcpServer {
@@ -21,8 +28,8 @@ func NewTcpServer(port string) TcpServer {
 	}
 }
 
-func (ts TcpServer) RunServer(ctx context.Context) (net.Listener, error) {
-	fmt.Println("Launching tcp-server...")
+func (ts *TcpServer) RunServer(ctx context.Context) (net.Listener, error) {
+	log.WithField("service", config.ServiceName).Info("Launching tcp-server...")
 
 	listener, err := net.Listen("tcp", ts.Port)
 	if err != nil {
@@ -30,4 +37,25 @@ func (ts TcpServer) RunServer(ctx context.Context) (net.Listener, error) {
 	}
 
 	return listener, nil
+}
+
+func (ts *TcpServer) SendMessage(ctx context.Context, mess []byte) error {
+	if _, err := ts.Conn.Write(mess); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ts *TcpServer) ReceiveMessage(ctx context.Context) (string, error) {
+	return bufio.NewReader(ts.Conn).ReadString('\n')
+}
+
+func (ts *TcpServer) SetConn(conn net.Conn) {
+	ts.Conn = conn
+}
+
+func (ts *TcpServer) CloseConn() {
+	connection := ts.Conn
+	connection.Close()
 }

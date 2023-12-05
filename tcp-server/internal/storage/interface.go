@@ -5,7 +5,6 @@ import (
 	"math/rand"
 )
 
-//go:generate mockery --name=IStorage --output=mocks --case=underscore
 type IStorage interface {
 	GetRandomWoW(ctx context.Context) string
 }

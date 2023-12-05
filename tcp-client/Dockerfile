@@ -7,6 +7,7 @@ RUN apk --no-cache add bash make git curl gcc musl-dev
 
 COPY Makefile ./
 COPY go.mod ./
+COPY go.sum ./
 
 CMD go mod download
 

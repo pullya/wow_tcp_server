@@ -2,26 +2,44 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
-	service "github.com/pullya/wow_tcp_server/tcp-server/internal/app"
+	"github.com/pullya/wow_tcp_server/tcp-server/internal/app"
 	"github.com/pullya/wow_tcp_server/tcp-server/internal/config"
 	"github.com/pullya/wow_tcp_server/tcp-server/internal/server"
 	"github.com/pullya/wow_tcp_server/tcp-server/internal/storage"
+	log "github.com/sirupsen/logrus"
 )
 
+func init() {
+	log.SetLevel(config.LogLevel)
+}
+
 func main() {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		sig := <-sigCh
+		log.WithField("service", config.ServiceName).Warnf("Received signal %v. Shutting down...", sig)
+
+		cancel()
+	}()
 
 	wowServer := server.NewTcpServer(config.TcpPort)
 
 	wowStorage := storage.NewInMemStorage(storage.WordsOfWisdom)
 
-	wowService := service.NewWowService(wowServer, wowStorage)
+	wowChallenge := app.NewChallenge(config.PowDifficulty)
+
+	wowService := app.NewWowService(&wowServer, wowStorage, wowChallenge)
 
 	err := wowService.Run(ctx)
 	if err != nil {
-		fmt.Println("Error while starting service:", err)
-		return
+		log.WithField("service", config.ServiceName).Fatalf("Error while starting service: %v", err)
 	}
 }
