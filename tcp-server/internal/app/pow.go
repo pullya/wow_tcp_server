@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
+//go:generate mockery --name=IChallenger --output=mocks --case=underscore
 type IChallenger interface {
 	IsValidPoW(challenge string, response uint64) bool
 	GetPowDifficulty() int
