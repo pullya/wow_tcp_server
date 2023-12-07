@@ -14,13 +14,14 @@ import (
 type WowService struct {
 	Client    client.IClient
 	Challenge IChallenger
-	wg        sync.WaitGroup
+	wg        *sync.WaitGroup
 }
 
 func NewWowService(client client.IClient, challenge IChallenger) WowService {
 	return WowService{
 		Client:    client,
 		Challenge: challenge,
+		wg:        &sync.WaitGroup{},
 	}
 }
 
@@ -42,6 +43,7 @@ func (ws *WowService) Run(ctx context.Context) {
 
 func (ws *WowService) startWork(ctx context.Context, id int) {
 	defer ws.wg.Done()
+
 	err := ws.Client.RunClient(ctx)
 	if err != nil {
 		log.WithFields(log.Fields{"service": config.ServiceName, "connection": id}).
@@ -68,7 +70,7 @@ func (ws *WowService) startWork(ctx context.Context, id int) {
 	}
 
 	ws.Challenge.SetPowDifficulty(sm.Difficulty)
-	nonce := ws.Challenge.GenerateSolution(sm.MessageString)
+	nonce := ws.Challenge.GenerateSolution(ctx, sm.MessageString)
 	log.WithFields(log.Fields{"service": config.ServiceName, "connection": id}).
 		Infof("Found solution: %s", nonce)
 
