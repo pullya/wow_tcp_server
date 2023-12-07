@@ -1,14 +1,16 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
+//go:generate mockery --name=IChallenger --output=mocks --case=underscore
 type IChallenger interface {
-	GenerateSolution(challenge string) string
+	GenerateSolution(ctx context.Context, challenge string) string
 	SetPowDifficulty(diff int)
 }
 
@@ -24,12 +26,12 @@ func (c *Challenge) SetPowDifficulty(diff int) {
 	c.PowDifficulty = diff
 }
 
-func (c *Challenge) GenerateSolution(challenge string) string {
-	nonce := c.mineEthash(challenge)
+func (c *Challenge) GenerateSolution(ctx context.Context, challenge string) string {
+	nonce := c.mineEthash(ctx, challenge)
 	return fmt.Sprint(nonce)
 }
 
-func (c *Challenge) mineEthash(challenge string) uint64 {
+func (c *Challenge) mineEthash(ctx context.Context, challenge string) uint64 {
 	nonce := uint64(0)
 	target := new(big.Int)
 	target.Exp(big.NewInt(2), big.NewInt(int64(256-c.PowDifficulty)), nil)

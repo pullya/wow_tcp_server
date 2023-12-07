@@ -6,6 +6,7 @@ import (
 	"net"
 )
 
+//go:generate mockery --name=IClient --output=mocks --case=underscore
 type IClient interface {
 	RunClient(ctx context.Context) error
 	SendMessage(ctx context.Context, mess []byte) error
