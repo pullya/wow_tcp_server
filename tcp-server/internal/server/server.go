@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+//go:generate mockery --name=IServer --output=mocks --case=underscore
 type IServer interface {
 	RunServer(ctx context.Context) (net.Listener, error)
 	SendMessage(ctx context.Context, mess []byte) error

@@ -144,13 +144,11 @@ func TestWowService_startWork(t *testing.T) {
 	log.StandardLogger().SetOutput(&logBuffer)
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			fields := tt.fields()
 			ws := &WowService{
-				Client:    fields.Client,
-				Challenge: fields.Challenge,
-				wg:        fields.wg,
+				Client:    tt.fields().Client,
+				Challenge: tt.fields().Challenge,
+				wg:        tt.fields().wg,
 			}
 
 			ws.startWork(tt.args.ctx, tt.args.id)

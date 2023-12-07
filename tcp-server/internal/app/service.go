@@ -14,6 +14,10 @@ import (
 
 var connCnt = 0
 
+type IWowService interface {
+	doProofOfWork(ctx context.Context, id int) error
+}
+
 type WowService struct {
 	Server    server.IServer
 	Storage   storage.IStorage
