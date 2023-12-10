@@ -44,15 +44,15 @@ func (ws *WowService) Run(ctx context.Context) {
 func (ws *WowService) startWork(ctx context.Context, id int) {
 	defer ws.wg.Done()
 
-	err := ws.Client.RunClient(ctx)
+	conn, err := ws.Client.RunClient(ctx)
 	if err != nil {
 		log.WithFields(log.Fields{"service": config.ServiceName, "connection": id}).
 			Errorf("Error while establishing connection to tcp-server: %v", err)
 		return
 	}
-	defer ws.Client.CloseConn()
+	defer ws.Client.CloseConn(conn)
 
-	taskMessage, err := ws.Client.ReceiveMessage(ctx)
+	taskMessage, err := ws.Client.ReceiveMessage(ctx, conn)
 	if err != nil {
 		log.WithFields(log.Fields{"service": config.ServiceName, "connection": id}).
 			Errorf("Error reading PoW challenge: %v", err)
@@ -76,13 +76,16 @@ func (ws *WowService) startWork(ctx context.Context, id int) {
 
 	responseMessage := model.PrepareMessage(model.MessageTypeSolution, nonce, sm.Difficulty)
 
-	if err = ws.Client.SendMessage(ctx, responseMessage.AsJsonString()); err != nil {
+	if err = ws.Client.SendMessage(ctx, conn, responseMessage.AsJsonString()); err != nil {
 		log.WithFields(log.Fields{"service": config.ServiceName, "connection": id}).
 			Errorf("Error while sending message: %v", err)
 		return
 	}
 
-	message, _ := ws.Client.ReceiveMessage(ctx)
+	message, err := ws.Client.ReceiveMessage(ctx, conn)
+	if err != nil {
+		return
+	}
 	log.WithFields(log.Fields{"service": config.ServiceName, "connection": id}).
 		Infof("Message from server received: %s", message)
 	sm, err = model.ParseServerMessage(message)

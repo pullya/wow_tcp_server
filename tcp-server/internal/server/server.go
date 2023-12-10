@@ -12,8 +12,8 @@ import (
 //go:generate mockery --name=IServer --output=mocks --case=underscore
 type IServer interface {
 	RunServer(ctx context.Context) (net.Listener, error)
-	SendMessage(ctx context.Context, mess []byte) error
-	ReceiveMessage(ctx context.Context) (string, error)
+	SendMessage(ctx context.Context, conn net.Conn, mess []byte) error
+	ReceiveMessage(ctx context.Context, conn net.Conn) (string, error)
 	SetConn(conn net.Conn)
 	CloseConn()
 }
@@ -40,16 +40,16 @@ func (ts *TcpServer) RunServer(ctx context.Context) (net.Listener, error) {
 	return listener, nil
 }
 
-func (ts *TcpServer) SendMessage(ctx context.Context, mess []byte) error {
-	if _, err := ts.Conn.Write(mess); err != nil {
+func (ts *TcpServer) SendMessage(ctx context.Context, conn net.Conn, mess []byte) error {
+	if _, err := conn.Write(mess); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (ts *TcpServer) ReceiveMessage(ctx context.Context) (string, error) {
-	return bufio.NewReader(ts.Conn).ReadString('\n')
+func (ts *TcpServer) ReceiveMessage(ctx context.Context, conn net.Conn) (string, error) {
+	return bufio.NewReader(conn).ReadString('\n')
 }
 
 func (ts *TcpServer) SetConn(conn net.Conn) {
