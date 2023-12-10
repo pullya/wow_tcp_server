@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"net"
 
 	"github.com/pkg/errors"
 	"github.com/pullya/wow_tcp_server/tcp-server/internal/config"
@@ -57,15 +58,15 @@ func (ws *WowService) Run(ctx context.Context) error {
 
 			log.WithFields(log.Fields{"service": config.ServiceName, "connection": connCnt}).Debug("New connection established!")
 
-			go ws.HandleConnection(ctx, connCnt)
+			go ws.HandleConnection(ctx, conn, connCnt)
 		}
 	}
 }
 
-func (ws *WowService) HandleConnection(ctx context.Context, id int) {
-	defer ws.Server.CloseConn()
+func (ws *WowService) HandleConnection(ctx context.Context, conn net.Conn, id int) {
+	defer conn.Close()
 
-	if err := ws.doProofOfWork(ctx, id); err != nil {
+	if err := ws.doProofOfWork(ctx, conn, id); err != nil {
 		log.WithFields(log.Fields{"service": config.ServiceName, "connection": id}).Errorf("Proof of work failed: %v", err)
 		return
 	}
@@ -75,21 +76,21 @@ func (ws *WowService) HandleConnection(ctx context.Context, id int) {
 
 	log.WithFields(log.Fields{"service": config.ServiceName, "connection": id}).Debugf("Prepared response: %s", string(wow))
 
-	if err := ws.Server.SendMessage(ctx, wowMessage.AsJsonString()); err != nil {
+	if err := ws.Server.SendMessage(ctx, conn, wowMessage.AsJsonString()); err != nil {
 		log.WithFields(log.Fields{"service": config.ServiceName, "connection": id}).Errorf("Error while sending response: %v", err)
 		return
 	}
 }
 
-func (ws *WowService) doProofOfWork(ctx context.Context, id int) error {
+func (ws *WowService) doProofOfWork(ctx context.Context, conn net.Conn, id int) error {
 	challengeMessage := model.PrepareMessage(model.MessageTypeChallenge, generatePoWChallenge(id), ws.Challenge.GetPowDifficulty())
 
-	if err := ws.Server.SendMessage(ctx, challengeMessage.AsJsonString()); err != nil {
+	if err := ws.Server.SendMessage(ctx, conn, challengeMessage.AsJsonString()); err != nil {
 		log.WithFields(log.Fields{"service": config.ServiceName, "connection": id}).Errorf("Error while sending challenge: %v", err)
 		return err
 	}
 
-	response, err := ws.Server.ReceiveMessage(ctx)
+	response, err := ws.Server.ReceiveMessage(ctx, conn)
 	if err != nil {
 		log.WithFields(log.Fields{"service": config.ServiceName, "connection": id}).Errorf("Error reading response: %v", err)
 		return err

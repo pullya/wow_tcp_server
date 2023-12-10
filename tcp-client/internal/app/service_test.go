@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"sync"
 	"testing"
 	"time"
@@ -18,6 +19,7 @@ import (
 )
 
 func TestWowService_startWork(t *testing.T) {
+	tConn := *new(net.Conn)
 	type fields struct {
 		Client    client.IClient
 		Challenge IChallenger
@@ -41,7 +43,7 @@ func TestWowService_startWork(t *testing.T) {
 				wg := sync.WaitGroup{}
 				wg.Add(1)
 
-				clientMock.On("RunClient", mock.Anything).Return(errors.New("error"))
+				clientMock.On("RunClient", mock.Anything).Return(nil, errors.New("error"))
 
 				return fields{
 					Client:    clientMock,
@@ -64,9 +66,9 @@ func TestWowService_startWork(t *testing.T) {
 				wg := sync.WaitGroup{}
 				wg.Add(1)
 
-				clientMock.On("RunClient", mock.Anything).Return(nil)
-				clientMock.On("CloseConn").Return()
-				clientMock.On("ReceiveMessage", mock.Anything).Return("message", errors.New("error"))
+				clientMock.On("RunClient", mock.Anything).Return(tConn, nil)
+				clientMock.On("CloseConn", tConn).Return()
+				clientMock.On("ReceiveMessage", mock.Anything, tConn).Return("message", errors.New("error"))
 
 				return fields{
 					Client:    clientMock,
@@ -89,9 +91,9 @@ func TestWowService_startWork(t *testing.T) {
 				wg := sync.WaitGroup{}
 				wg.Add(1)
 
-				clientMock.On("RunClient", mock.Anything).Return(nil)
-				clientMock.On("CloseConn").Return()
-				clientMock.On("ReceiveMessage", mock.Anything).Return("message", nil)
+				clientMock.On("RunClient", mock.Anything).Return(tConn, nil)
+				clientMock.On("CloseConn", tConn).Return()
+				clientMock.On("ReceiveMessage", mock.Anything, tConn).Return("message", nil)
 
 				return fields{
 					Client:    clientMock,
@@ -114,14 +116,14 @@ func TestWowService_startWork(t *testing.T) {
 				wg := sync.WaitGroup{}
 				wg.Add(1)
 
-				clientMock.On("RunClient", mock.Anything).Return(nil)
-				clientMock.On("CloseConn").Return()
-				clientMock.On("ReceiveMessage", mock.Anything).Return("{\"message_type\":\"challenge\",\"message_string\":\"Find a string that, when hashed, can be proofed 1\",\"difficulty\":10}", nil)
+				clientMock.On("RunClient", mock.Anything).Return(tConn, nil)
+				clientMock.On("CloseConn", tConn).Return()
+				clientMock.On("ReceiveMessage", mock.Anything, tConn).Return("{\"message_type\":\"challenge\",\"message_string\":\"Find a string that, when hashed, can be proofed 1\",\"difficulty\":10}", nil)
 
 				challengeMock.On("SetPowDifficulty", 10).Return()
 				challengeMock.On("GenerateSolution", mock.Anything, "Find a string that, when hashed, can be proofed 1").Return("123")
 
-				clientMock.On("SendMessage", mock.Anything, mock.Anything).Return(errors.New("error"))
+				clientMock.On("SendMessage", mock.Anything, tConn, mock.Anything).Return(errors.New("error"))
 
 				return fields{
 					Client:    clientMock,

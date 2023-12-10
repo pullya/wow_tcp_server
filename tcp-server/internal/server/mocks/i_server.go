@@ -19,9 +19,9 @@ func (_m *IServer) CloseConn() {
 	_m.Called()
 }
 
-// ReceiveMessage provides a mock function with given fields: ctx
-func (_m *IServer) ReceiveMessage(ctx context.Context) (string, error) {
-	ret := _m.Called(ctx)
+// ReceiveMessage provides a mock function with given fields: ctx, conn
+func (_m *IServer) ReceiveMessage(ctx context.Context, conn net.Conn) (string, error) {
+	ret := _m.Called(ctx, conn)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ReceiveMessage")
@@ -29,17 +29,17 @@ func (_m *IServer) ReceiveMessage(ctx context.Context) (string, error) {
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context) (string, error)); ok {
-		return rf(ctx)
+	if rf, ok := ret.Get(0).(func(context.Context, net.Conn) (string, error)); ok {
+		return rf(ctx, conn)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context) string); ok {
-		r0 = rf(ctx)
+	if rf, ok := ret.Get(0).(func(context.Context, net.Conn) string); ok {
+		r0 = rf(ctx, conn)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
-		r1 = rf(ctx)
+	if rf, ok := ret.Get(1).(func(context.Context, net.Conn) error); ok {
+		r1 = rf(ctx, conn)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -77,17 +77,17 @@ func (_m *IServer) RunServer(ctx context.Context) (net.Listener, error) {
 	return r0, r1
 }
 
-// SendMessage provides a mock function with given fields: ctx, mess
-func (_m *IServer) SendMessage(ctx context.Context, mess []byte) error {
-	ret := _m.Called(ctx, mess)
+// SendMessage provides a mock function with given fields: ctx, conn, mess
+func (_m *IServer) SendMessage(ctx context.Context, conn net.Conn, mess []byte) error {
+	ret := _m.Called(ctx, conn, mess)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SendMessage")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, []byte) error); ok {
-		r0 = rf(ctx, mess)
+	if rf, ok := ret.Get(0).(func(context.Context, net.Conn, []byte) error); ok {
+		r0 = rf(ctx, conn, mess)
 	} else {
 		r0 = ret.Error(0)
 	}
