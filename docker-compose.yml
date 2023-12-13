@@ -6,11 +6,24 @@ services:
       - 8081:8081
     networks:
       - test_network
+    environment:
+      - WOW_SERVER_PORT
+      - WOW_SERVER_TIMEOUT
+      - WOW_SERVER_SERVICE_NAME
+      - WOW_SERVER_DIFFICULTY
+      - WOW_SERVER_PROOF_STRING
+      - WOW_SERVER_LOG_LEVEL
   tcp_client:
     depends_on:
       - tcp_server
     build: ./tcp-client
     networks:
       - test_network
+    environment:
+      - WOW_CLIENT_PORT
+      - WOW_CLIENT_SERVICE_NAME
+      - WOW_CLIENT_CLIENTS_COUNT
+      - WOW_CLIENT_CONN_INTERVAL
+      - WOW_CLIENT_LOG_LEVEL
 networks:
   test_network:

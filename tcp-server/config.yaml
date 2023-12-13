@@ -1,11 +1,14 @@
 # Номер порта для соединения с tcp-сервером
-tcpPort: ":8081"
+port: 8081
+
+# Таймаут для входящего соединения в миллисекундах
+timeout: 5000
 
 # Имя сервиса для отображения в логах
 serviceName: "tcp-server"
 
 # Условие сложности для Proof of work
-difficulty: 10
+difficulty: 23
 proofString: "Find a string that, when hashed, can be proofed"
 
 # Уровень логирования

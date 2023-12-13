@@ -31,7 +31,7 @@ func main() {
 		cancel()
 	}()
 
-	client := client.New(config.Config.Address)
+	client := client.New(config.BuildAddress(config.Config.Port))
 	challenge := app.NewChallenge()
 
 	app := app.New(&client, &challenge)

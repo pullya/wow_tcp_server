@@ -21,6 +21,7 @@ import (
 
 func TestWowService_startWork(t *testing.T) {
 	tConn := *new(net.Conn)
+	config.Config.ServiceName = "tcp-client"
 	config.InitLogger()
 
 	type fields struct {
