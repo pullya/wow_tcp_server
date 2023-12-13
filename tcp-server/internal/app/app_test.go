@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func Test_generatePoWChallenge(t *testing.T) {
+func Test_generatePOWChallenge(t *testing.T) {
 	t.Parallel()
 	type args struct {
 		cnt int
@@ -28,23 +28,23 @@ func Test_generatePoWChallenge(t *testing.T) {
 		{
 			name: "Success #1",
 			args: args{cnt: 1},
-			want: config.ProofString + " 1",
+			want: config.Config.ProofString + " 1",
 		},
 		{
 			name: "Success #2",
 			args: args{cnt: -1234},
-			want: config.ProofString + " -1234",
+			want: config.Config.ProofString + " -1234",
 		},
 		{
 			name: "Success #3",
 			args: args{cnt: 0},
-			want: config.ProofString + " 0",
+			want: config.Config.ProofString + " 0",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := generatePoWChallenge(tt.args.cnt); got != tt.want {
-				t.Errorf("generatePoWChallenge() = %v, want %v", got, tt.want)
+			if got := generatePOWChallenge(tt.args.cnt); got != tt.want {
+				t.Errorf("generatePOWChallenge() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -52,10 +52,12 @@ func Test_generatePoWChallenge(t *testing.T) {
 
 func TestWowService_doProofOfWork(t *testing.T) {
 	tConn := *new(net.Conn)
+	config.InitLogger()
+
 	type fields struct {
-		Server    server.IServer
-		Storage   storage.IStorage
-		Challenge IChallenger
+		Server    server.ServerProvider
+		Storage   storage.Storageer
+		Challenge Challenger
 	}
 	type args struct {
 		ctx  context.Context
@@ -71,11 +73,11 @@ func TestWowService_doProofOfWork(t *testing.T) {
 		{
 			name: "Send challenge message Error",
 			fields: func() fields {
-				serverMock := &serverMocks.IServer{}
-				storageMock := &storageMocks.IStorage{}
-				challengeMock := &mocks.IChallenger{}
+				serverMock := &serverMocks.ServerProvider{}
+				storageMock := &storageMocks.Storageer{}
+				challengeMock := &mocks.Challenger{}
 
-				challengeMock.On("GetPowDifficulty").Return(10)
+				challengeMock.On("Difficulty").Return(10)
 				serverMock.On("SendMessage", mock.Anything, tConn, mock.Anything).Return(errors.New("error"))
 
 				return fields{
@@ -94,11 +96,11 @@ func TestWowService_doProofOfWork(t *testing.T) {
 		{
 			name: "Receive client message Error",
 			fields: func() fields {
-				serverMock := &serverMocks.IServer{}
-				storageMock := &storageMocks.IStorage{}
-				challengeMock := &mocks.IChallenger{}
+				serverMock := &serverMocks.ServerProvider{}
+				storageMock := &storageMocks.Storageer{}
+				challengeMock := &mocks.Challenger{}
 
-				challengeMock.On("GetPowDifficulty").Return(10)
+				challengeMock.On("Difficulty").Return(10)
 				serverMock.On("SendMessage", mock.Anything, tConn, mock.Anything).Return(nil)
 				serverMock.On("ReceiveMessage", mock.Anything, tConn).Return("message", errors.New("error"))
 
@@ -118,11 +120,11 @@ func TestWowService_doProofOfWork(t *testing.T) {
 		{
 			name: "Parse message Error",
 			fields: func() fields {
-				serverMock := &serverMocks.IServer{}
-				storageMock := &storageMocks.IStorage{}
-				challengeMock := &mocks.IChallenger{}
+				serverMock := &serverMocks.ServerProvider{}
+				storageMock := &storageMocks.Storageer{}
+				challengeMock := &mocks.Challenger{}
 
-				challengeMock.On("GetPowDifficulty").Return(10)
+				challengeMock.On("Difficulty").Return(10)
 				serverMock.On("SendMessage", mock.Anything, tConn, mock.Anything).Return(nil)
 				serverMock.On("ReceiveMessage", mock.Anything, tConn).Return("message", nil)
 
@@ -142,11 +144,11 @@ func TestWowService_doProofOfWork(t *testing.T) {
 		{
 			name: "Get uint64 Error",
 			fields: func() fields {
-				serverMock := &serverMocks.IServer{}
-				storageMock := &storageMocks.IStorage{}
-				challengeMock := &mocks.IChallenger{}
+				serverMock := &serverMocks.ServerProvider{}
+				storageMock := &storageMocks.Storageer{}
+				challengeMock := &mocks.Challenger{}
 
-				challengeMock.On("GetPowDifficulty").Return(10)
+				challengeMock.On("Difficulty").Return(10)
 				serverMock.On("SendMessage", mock.Anything, tConn, mock.Anything).Return(nil)
 				serverMock.On("ReceiveMessage", mock.Anything, tConn).Return("{\"message_type\":\"solution\",\"message_string\":\"-2450\",\"difficulty\":10}", nil)
 
@@ -166,14 +168,14 @@ func TestWowService_doProofOfWork(t *testing.T) {
 		{
 			name: "Error",
 			fields: func() fields {
-				serverMock := &serverMocks.IServer{}
-				storageMock := &storageMocks.IStorage{}
-				challengeMock := &mocks.IChallenger{}
+				serverMock := &serverMocks.ServerProvider{}
+				storageMock := &storageMocks.Storageer{}
+				challengeMock := &mocks.Challenger{}
 
-				challengeMock.On("GetPowDifficulty").Return(10)
+				challengeMock.On("Difficulty").Return(10)
 				serverMock.On("SendMessage", mock.Anything, tConn, mock.Anything).Return(nil)
 				serverMock.On("ReceiveMessage", mock.Anything, tConn).Return("{\"message_type\":\"solution\",\"message_string\":\"2450\",\"difficulty\":10}", nil)
-				challengeMock.On("IsValidPoW", mock.Anything, uint64(2450)).Return(false)
+				challengeMock.On("IsValid", mock.Anything, uint64(2450)).Return(false)
 
 				return fields{
 					Server:    serverMock,
@@ -191,14 +193,14 @@ func TestWowService_doProofOfWork(t *testing.T) {
 		{
 			name: "Error send challenge message",
 			fields: func() fields {
-				serverMock := &serverMocks.IServer{}
-				storageMock := &storageMocks.IStorage{}
-				challengeMock := &mocks.IChallenger{}
+				serverMock := &serverMocks.ServerProvider{}
+				storageMock := &storageMocks.Storageer{}
+				challengeMock := &mocks.Challenger{}
 
-				challengeMock.On("GetPowDifficulty").Return(10)
+				challengeMock.On("Difficulty").Return(10)
 				serverMock.On("SendMessage", mock.Anything, tConn, mock.Anything).Return(nil)
 				serverMock.On("ReceiveMessage", mock.Anything, tConn).Return("{\"message_type\":\"solution\",\"message_string\":\"2450\",\"difficulty\":10}", nil)
-				challengeMock.On("IsValidPoW", mock.Anything, uint64(2450)).Return(true)
+				challengeMock.On("IsValid", mock.Anything, uint64(2450)).Return(true)
 
 				return fields{
 					Server:    serverMock,
@@ -216,13 +218,13 @@ func TestWowService_doProofOfWork(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ws := &WowService{
-				Server:    tt.fields().Server,
-				Storage:   tt.fields().Storage,
-				Challenge: tt.fields().Challenge,
+			ws := &App{
+				server:    tt.fields().Server,
+				storage:   tt.fields().Storage,
+				challenge: tt.fields().Challenge,
 			}
 			if err := ws.doProofOfWork(tt.args.ctx, tt.args.conn, tt.args.id); (err != nil) != tt.wantErr {
-				t.Errorf("WowService.doProofOfWork() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("App.doProofOfWork() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

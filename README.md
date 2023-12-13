@@ -16,18 +16,18 @@ docker-compose up
  - возможность менять уровень сложность поиска решения
  - открытый исходный код и относительно невысокие требования к производительности (по сравнению с другими алгоритмами)
 
-Для сервера можно настроить следующие параметры конфигурации (файл *./tcp-server/internal/config/config.go*)
+Для сервера можно настроить следующие параметры конфигурации (файл *./tcp-server/config.yaml*)
 
- - TcpPort     = ":8081"      // Номер порта для соединения с tcp-сервером
- - ServiceName = "tcp-server" // Имя сервиса для отображения в логах
- - PowDifficulty = 10 // Условие сложности для Proof of work
- - ProofString   = "Find a string that, when hashed, can be proofed"
- - LogLevel = log.DebugLevel // Уровень логирования
+ - tcpPort     = ":8081"      // Номер порта для соединения с tcp-сервером
+ - serviceName = "tcp-server" // Имя сервиса для отображения в логах
+ - difficulty = 10 // Условие сложности для Proof of work
+ - proofString   = "Find a string that, when hashed, can be proofed"
+ - logLevel = "Debug" // Уровень логирования
 
-Для клиента можно настроить следующие параметры конфигурации (файл *./tcp-client/internal/config/config.go*)
+Для клиента можно настроить следующие параметры конфигурации (файл *./tcp-client/config.yaml*)
 
- - Address     = "tcp_server:8081" // Адрес для соединения с tcp-сервером. Имя "tcp_server" должно совпадать с именем сервера в файле docker-compose.yml
- - ServiceName = "tcp-client"      // Имя сервиса для отображения в логах
- - ClientsCount = 5    // Количество клиентов, которое будет запущено
- - ConnInterval = 3000 // Интервал в миллисекундах между запуском горутин с клиентами
- - LogLevel = log.DebugLevel // Уровень логирования
+ - address     = "tcp_server:8081" // Адрес для соединения с tcp-сервером. Имя "tcp_server" должно совпадать с именем сервера в файле docker-compose.yml
+ - serviceName = "tcp-client"      // Имя сервиса для отображения в логах
+ - clientsCount = 5    // Количество клиентов, которое будет запущено
+ - connInterval = 3000 // Интервал в миллисекундах между запуском горутин с клиентами
+ - logLevel = "Debug" // Уровень логирования

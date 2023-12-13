@@ -14,7 +14,9 @@ import (
 )
 
 func init() {
-	log.SetLevel(config.LogLevel)
+	config.ReadConfig()
+	config.InitLogger()
+	log.SetLevel(config.Config.LogLevel.ToLogrusFormat())
 }
 
 func main() {
@@ -25,21 +27,21 @@ func main() {
 
 	go func() {
 		sig := <-sigCh
-		log.WithField("service", config.ServiceName).Warnf("Received signal %v. Shutting down...", sig)
+		config.Logger.Warnf("Received signal %v. Shutting down...", sig)
 
 		cancel()
 	}()
 
-	wowServer := server.NewTcpServer(config.TcpPort)
+	server := server.New(config.Config.TcpPort)
 
-	wowStorage := storage.NewInMemStorage(storage.WordsOfWisdom)
+	storage := storage.New(storage.WordsOfWisdom)
 
-	wowChallenge := app.NewChallenge(config.PowDifficulty)
+	challenge := app.NewChallenge(config.Config.Difficulty)
 
-	wowService := app.NewWowService(&wowServer, wowStorage, wowChallenge)
+	app := app.New(&server, storage, challenge)
 
-	err := wowService.Run(ctx)
+	err := app.Run(ctx)
 	if err != nil {
-		log.WithField("service", config.ServiceName).Fatalf("Error while starting service: %v", err)
+		config.Logger.Fatalf("Error while starting service: %v", err)
 	}
 }

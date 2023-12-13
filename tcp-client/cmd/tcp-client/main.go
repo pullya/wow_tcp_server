@@ -13,7 +13,9 @@ import (
 )
 
 func init() {
-	log.SetLevel(config.LogLevel)
+	config.ReadConfig()
+	config.InitLogger()
+	log.SetLevel(config.Config.LogLevel.ToLogrusFormat())
 }
 
 func main() {
@@ -24,15 +26,15 @@ func main() {
 
 	go func() {
 		sig := <-sigCh
-		log.WithField("service", config.ServiceName).Warnf("Received signal %v. Shutting down...", sig)
+		config.Logger.Warnf("Received signal %v. Shutting down...", sig)
 
 		cancel()
 	}()
 
-	wowClient := client.NewClient(config.Address)
-	wowChallenge := app.NewChallenge()
+	client := client.New(config.Config.Address)
+	challenge := app.NewChallenge()
 
-	wowService := app.NewWowService(&wowClient, &wowChallenge)
+	app := app.New(&client, &challenge)
 
-	wowService.Run(ctx)
+	app.Run(ctx)
 }
