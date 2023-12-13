@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/pullya/wow_tcp_server/tcp-server/internal/config"
@@ -55,7 +56,6 @@ func (a *App) Run(ctx context.Context) error {
 			connCnt++
 
 			config.Logger.WithField("connection", connCnt).Debug("New connection established!")
-
 			go a.handleConnection(ctx, conn, connCnt)
 		}
 	}
@@ -64,8 +64,11 @@ func (a *App) Run(ctx context.Context) error {
 func (a *App) handleConnection(ctx context.Context, conn net.Conn, id int) {
 	defer conn.Close()
 
+	if err := conn.SetReadDeadline(time.Now().Add(a.server.GetTimeout())); err != nil {
+		config.Logger.WithField("connection", id).Errorf("Error while setting timeout: %v", err)
+		return
+	}
 	if err := a.doProofOfWork(ctx, conn, id); err != nil {
-		config.Logger.WithField("connection", id).Errorf("Proof of work failed: %v", err)
 		return
 	}
 

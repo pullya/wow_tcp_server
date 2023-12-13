@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/pullya/wow_tcp_server/tcp-server/internal/app"
 	"github.com/pullya/wow_tcp_server/tcp-server/internal/config"
@@ -32,7 +33,7 @@ func main() {
 		cancel()
 	}()
 
-	server := server.New(config.Config.TcpPort)
+	server := server.New(config.BuildPort(config.Config.Port), time.Millisecond*time.Duration(config.Config.Timeout))
 
 	storage := storage.New(storage.WordsOfWisdom)
 
