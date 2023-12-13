@@ -13,6 +13,7 @@ import (
 	"github.com/pullya/wow_tcp_server/tcp-client/internal/app/mocks"
 	"github.com/pullya/wow_tcp_server/tcp-client/internal/client"
 	clientMocks "github.com/pullya/wow_tcp_server/tcp-client/internal/client/mocks"
+	"github.com/pullya/wow_tcp_server/tcp-client/internal/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -20,9 +21,11 @@ import (
 
 func TestWowService_startWork(t *testing.T) {
 	tConn := *new(net.Conn)
+	config.InitLogger()
+
 	type fields struct {
-		Client    client.IClient
-		Challenge IChallenger
+		Client    client.ClientProvider
+		Challenge Challenger
 		wg        *sync.WaitGroup
 	}
 	type args struct {
@@ -38,12 +41,12 @@ func TestWowService_startWork(t *testing.T) {
 		{
 			name: "Error RunClient",
 			fields: func() fields {
-				clientMock := &clientMocks.IClient{}
-				challengeMock := &mocks.IChallenger{}
+				clientMock := &clientMocks.ClientProvider{}
+				challengeMock := &mocks.Challenger{}
 				wg := sync.WaitGroup{}
 				wg.Add(1)
 
-				clientMock.On("RunClient", mock.Anything).Return(nil, errors.New("error"))
+				clientMock.On("Run", mock.Anything).Return(nil, errors.New("error"))
 
 				return fields{
 					Client:    clientMock,
@@ -61,12 +64,12 @@ func TestWowService_startWork(t *testing.T) {
 		{
 			name: "Challenge Message wasn't received",
 			fields: func() fields {
-				clientMock := &clientMocks.IClient{}
-				challengeMock := &mocks.IChallenger{}
+				clientMock := &clientMocks.ClientProvider{}
+				challengeMock := &mocks.Challenger{}
 				wg := sync.WaitGroup{}
 				wg.Add(1)
 
-				clientMock.On("RunClient", mock.Anything).Return(tConn, nil)
+				clientMock.On("Run", mock.Anything).Return(tConn, nil)
 				clientMock.On("CloseConn", tConn).Return()
 				clientMock.On("ReceiveMessage", mock.Anything, tConn).Return("message", errors.New("error"))
 
@@ -86,12 +89,12 @@ func TestWowService_startWork(t *testing.T) {
 		{
 			name: "Error Parse server message",
 			fields: func() fields {
-				clientMock := &clientMocks.IClient{}
-				challengeMock := &mocks.IChallenger{}
+				clientMock := &clientMocks.ClientProvider{}
+				challengeMock := &mocks.Challenger{}
 				wg := sync.WaitGroup{}
 				wg.Add(1)
 
-				clientMock.On("RunClient", mock.Anything).Return(tConn, nil)
+				clientMock.On("Run", mock.Anything).Return(tConn, nil)
 				clientMock.On("CloseConn", tConn).Return()
 				clientMock.On("ReceiveMessage", mock.Anything, tConn).Return("message", nil)
 
@@ -111,16 +114,16 @@ func TestWowService_startWork(t *testing.T) {
 		{
 			name: "Error Send answer to server",
 			fields: func() fields {
-				clientMock := &clientMocks.IClient{}
-				challengeMock := &mocks.IChallenger{}
+				clientMock := &clientMocks.ClientProvider{}
+				challengeMock := &mocks.Challenger{}
 				wg := sync.WaitGroup{}
 				wg.Add(1)
 
-				clientMock.On("RunClient", mock.Anything).Return(tConn, nil)
+				clientMock.On("Run", mock.Anything).Return(tConn, nil)
 				clientMock.On("CloseConn", tConn).Return()
 				clientMock.On("ReceiveMessage", mock.Anything, tConn).Return("{\"message_type\":\"challenge\",\"message_string\":\"Find a string that, when hashed, can be proofed 1\",\"difficulty\":10}", nil)
 
-				challengeMock.On("SetPowDifficulty", 10).Return()
+				challengeMock.On("SetDifficulty", 10).Return()
 				challengeMock.On("GenerateSolution", mock.Anything, "Find a string that, when hashed, can be proofed 1").Return("123")
 
 				clientMock.On("SendMessage", mock.Anything, tConn, mock.Anything).Return(errors.New("error"))
@@ -147,9 +150,9 @@ func TestWowService_startWork(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ws := &WowService{
-				Client:    tt.fields().Client,
-				Challenge: tt.fields().Challenge,
+			ws := &App{
+				client:    tt.fields().Client,
+				challenge: tt.fields().Challenge,
 				wg:        tt.fields().wg,
 			}
 

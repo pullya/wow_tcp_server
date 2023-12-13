@@ -8,22 +8,22 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-//go:generate mockery --name=IChallenger --output=mocks --case=underscore
-type IChallenger interface {
+//go:generate mockery --name=Challenger --output=mocks --case=underscore
+type Challenger interface {
 	GenerateSolution(ctx context.Context, challenge string) string
-	SetPowDifficulty(diff int)
+	SetDifficulty(diff int)
 }
 
 type Challenge struct {
-	PowDifficulty int
+	difficulty int
 }
 
 func NewChallenge() Challenge {
 	return Challenge{}
 }
 
-func (c *Challenge) SetPowDifficulty(diff int) {
-	c.PowDifficulty = diff
+func (c *Challenge) SetDifficulty(diff int) {
+	c.difficulty = diff
 }
 
 func (c *Challenge) GenerateSolution(ctx context.Context, challenge string) string {
@@ -34,7 +34,7 @@ func (c *Challenge) GenerateSolution(ctx context.Context, challenge string) stri
 func (c *Challenge) mineEthash(ctx context.Context, challenge string) uint64 {
 	nonce := uint64(0)
 	target := new(big.Int)
-	target.Exp(big.NewInt(2), big.NewInt(int64(256-c.PowDifficulty)), nil)
+	target.Exp(big.NewInt(2), big.NewInt(int64(256-c.difficulty)), nil)
 
 	for {
 		hash := crypto.Keccak256([]byte(fmt.Sprint(challenge, nonce)))

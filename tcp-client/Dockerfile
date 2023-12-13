@@ -18,5 +18,6 @@ RUN go build -o ./bin/tcp-client cmd/tcp-client/main.go
 
 FROM alpine:latest AS client
 COPY --from=builder /usr/local/src/bin/tcp-client /
+COPY config.yaml ./
 
 CMD ["/tcp-client"]

@@ -18,6 +18,7 @@ RUN go build -o ./bin/tcp-server cmd/tcp-server/main.go
 
 FROM alpine:latest AS server
 COPY --from=builder /usr/local/src/bin/tcp-server /
+COPY config.yaml ./
 
 CMD ["/tcp-server"]
 

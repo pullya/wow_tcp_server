@@ -6,31 +6,28 @@ import (
 	"net"
 
 	"github.com/pullya/wow_tcp_server/tcp-server/internal/config"
-	log "github.com/sirupsen/logrus"
 )
 
-//go:generate mockery --name=IServer --output=mocks --case=underscore
-type IServer interface {
-	RunServer(ctx context.Context) (net.Listener, error)
+//go:generate mockery --name=ServerProvider --output=mocks --case=underscore
+type ServerProvider interface {
+	Run(ctx context.Context) (net.Listener, error)
 	SendMessage(ctx context.Context, conn net.Conn, mess []byte) error
 	ReceiveMessage(ctx context.Context, conn net.Conn) (string, error)
-	SetConn(conn net.Conn)
-	CloseConn()
 }
 
-type TcpServer struct {
+type Server struct {
 	Port string
 	Conn net.Conn
 }
 
-func NewTcpServer(port string) TcpServer {
-	return TcpServer{
+func New(port string) Server {
+	return Server{
 		Port: port,
 	}
 }
 
-func (ts *TcpServer) RunServer(ctx context.Context) (net.Listener, error) {
-	log.WithField("service", config.ServiceName).Info("Launching tcp-server...")
+func (ts *Server) Run(ctx context.Context) (net.Listener, error) {
+	config.Logger.Info("Launching tcp-server...")
 
 	listener, err := net.Listen("tcp", ts.Port)
 	if err != nil {
@@ -40,7 +37,7 @@ func (ts *TcpServer) RunServer(ctx context.Context) (net.Listener, error) {
 	return listener, nil
 }
 
-func (ts *TcpServer) SendMessage(ctx context.Context, conn net.Conn, mess []byte) error {
+func (ts *Server) SendMessage(ctx context.Context, conn net.Conn, mess []byte) error {
 	if _, err := conn.Write(mess); err != nil {
 		return err
 	}
@@ -48,15 +45,6 @@ func (ts *TcpServer) SendMessage(ctx context.Context, conn net.Conn, mess []byte
 	return nil
 }
 
-func (ts *TcpServer) ReceiveMessage(ctx context.Context, conn net.Conn) (string, error) {
+func (ts *Server) ReceiveMessage(ctx context.Context, conn net.Conn) (string, error) {
 	return bufio.NewReader(conn).ReadString('\n')
-}
-
-func (ts *TcpServer) SetConn(conn net.Conn) {
-	ts.Conn = conn
-}
-
-func (ts *TcpServer) CloseConn() {
-	connection := ts.Conn
-	connection.Close()
 }

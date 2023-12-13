@@ -6,6 +6,7 @@ require (
 	github.com/ethereum/go-ethereum v1.13.5
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
