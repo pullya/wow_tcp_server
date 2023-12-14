@@ -171,6 +171,7 @@ func TestMessage_GetUint64(t *testing.T) {
 func TestMessage_AsJsonString(t *testing.T) {
 	t.Parallel()
 	type fields struct {
+		RequestID     string
 		MessageType   string
 		MessageString string
 		Difficulty    int
@@ -183,30 +184,33 @@ func TestMessage_AsJsonString(t *testing.T) {
 		{
 			name: "Success #1",
 			fields: fields{
+				RequestID:     "1a2s3d4f5g",
 				MessageType:   "solution",
 				MessageString: "Challenge string 1000",
 				Difficulty:    3,
 			},
-			want: []byte("{\"message_type\":\"solution\",\"message_string\":\"Challenge string 1000\",\"difficulty\":3}\n"),
+			want: []byte("{\"request_id\":\"1a2s3d4f5g\",\"message_type\":\"solution\",\"message_string\":\"Challenge string 1000\",\"difficulty\":3}\n"),
 		},
 		{
 			name: "Success #2",
 			fields: fields{
+				RequestID:     "",
 				MessageType:   "",
 				MessageString: "",
 				Difficulty:    0,
 			},
-			want: []byte("{\"message_type\":\"\",\"message_string\":\"\",\"difficulty\":0}\n"),
+			want: []byte("{\"request_id\":\"\",\"message_type\":\"\",\"message_string\":\"\",\"difficulty\":0}\n"),
 		},
 		{
 			name:   "Success #3",
 			fields: fields{},
-			want:   []byte("{\"message_type\":\"\",\"message_string\":\"\",\"difficulty\":0}\n"),
+			want:   []byte("{\"request_id\":\"\",\"message_type\":\"\",\"message_string\":\"\",\"difficulty\":0}\n"),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := Message{
+				RequestID:     tt.fields.RequestID,
 				MessageType:   tt.fields.MessageType,
 				MessageString: tt.fields.MessageString,
 				Difficulty:    tt.fields.Difficulty,

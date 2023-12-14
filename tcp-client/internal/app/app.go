@@ -50,6 +50,13 @@ func (a *App) startWork(ctx context.Context, id int) {
 	}
 	defer a.client.CloseConn(conn)
 
+	requestMessage := model.PrepareMessage("", model.MessageTypeRequest, "", 0)
+
+	if err = a.client.SendMessage(ctx, conn, requestMessage.AsJsonString()); err != nil {
+		config.Logger.WithField("connection", id).Errorf("Error while sending request message: %v", err)
+		return
+	}
+
 	taskMessage, err := a.client.ReceiveMessage(ctx, conn)
 	if err != nil {
 		config.Logger.WithField("connection", id).Errorf("Error reading PoW challenge: %v", err)
@@ -63,12 +70,19 @@ func (a *App) startWork(ctx context.Context, id int) {
 		config.Logger.WithField("connection", id).Errorf("Unable to unmarshal server message: %v\n", err)
 		return
 	}
+	a.client.CloseConn(conn)
 
 	a.challenge.SetDifficulty(sm.Difficulty)
 	nonce := a.challenge.GenerateSolution(ctx, sm.MessageString)
 	config.Logger.WithField("connection", id).Infof("Found solution: %s", nonce)
 
-	responseMessage := model.PrepareMessage(model.MessageTypeSolution, nonce, sm.Difficulty)
+	responseMessage := model.PrepareMessage(sm.RequestID, model.MessageTypeSolution, nonce, sm.Difficulty)
+
+	conn, err = a.client.Run(ctx)
+	if err != nil {
+		config.Logger.WithField("connection", id).Errorf("Error while establishing connection to tcp-server: %v", err)
+		return
+	}
 
 	if err = a.client.SendMessage(ctx, conn, responseMessage.AsJsonString()); err != nil {
 		config.Logger.WithField("connection", id).Errorf("Error while sending message: %v", err)

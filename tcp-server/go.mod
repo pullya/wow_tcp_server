@@ -4,8 +4,10 @@ go 1.21.0
 
 require (
 	github.com/ethereum/go-ethereum v1.13.5
+	github.com/google/uuid v1.3.0
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.3
+	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.8.4
 	gopkg.in/yaml.v2 v2.4.0
 )

@@ -27,6 +27,8 @@ const (
 	envDifficulty  = "WOW_SERVER_DIFFICULTY"
 	envProofString = "WOW_SERVER_PROOF_STRING"
 	envLogLevel    = "WOW_SERVER_LOG_LEVEL"
+
+	shardsCount = 8
 )
 
 var Config Configuration
@@ -60,6 +62,8 @@ type Configuration struct {
 	Difficulty  int    `yaml:"difficulty"`
 	ProofString string `yaml:"proofString"`
 
+	ShardsCnt int `yaml:"shardsCnt"`
+
 	LogLevel LogLevel `yaml:"logLevel"`
 }
 
@@ -77,6 +81,7 @@ func ReadConfig() {
 		log.Fatalf("failed to unmarshall config file '%s', error: %v", configFile, err)
 		return
 	}
+	Config.ShardsCnt = shardsCount
 
 	log.Debugf("Default configuration read: %v", Config)
 
