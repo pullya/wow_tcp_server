@@ -11,6 +11,7 @@ const (
 	MessageTypeChallenge = "challenge"
 	MessageTypeWow       = "wow"
 	MessageTypeSolution  = "solution"
+	MessageTypeRequest   = "request"
 )
 
 var (
@@ -18,17 +19,20 @@ var (
 		MessageTypeChallenge: true,
 		MessageTypeWow:       true,
 		MessageTypeSolution:  true,
+		MessageTypeRequest:   true,
 	}
 )
 
 type Message struct {
+	RequestID     string `json:"request_id"`
 	MessageType   string `json:"message_type"`
 	MessageString string `json:"message_string"`
 	Difficulty    int    `json:"difficulty"`
 }
 
-func PrepareMessage(mType string, mString string, d int) Message {
+func PrepareMessage(rid string, mType string, mString string, d int) Message {
 	return Message{
+		RequestID:     rid,
 		MessageType:   mType,
 		MessageString: mString,
 		Difficulty:    d,

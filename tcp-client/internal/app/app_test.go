@@ -63,6 +63,31 @@ func TestWowService_startWork(t *testing.T) {
 				time.Now().Format("2006-01-02T15:04:05-07:00")),
 		},
 		{
+			name: "Error Send request to server",
+			fields: func() fields {
+				clientMock := &clientMocks.ClientProvider{}
+				challengeMock := &mocks.Challenger{}
+				wg := sync.WaitGroup{}
+				wg.Add(1)
+
+				clientMock.On("Run", mock.Anything).Return(tConn, nil)
+				clientMock.On("CloseConn", tConn).Return()
+				clientMock.On("SendMessage", mock.Anything, tConn, []byte("{\"request_id\":\"\",\"message_type\":\"request\",\"message_string\":\"\",\"difficulty\":0}\n")).Return(errors.New("error"))
+
+				return fields{
+					Client:    clientMock,
+					Challenge: challengeMock,
+					wg:        &wg,
+				}
+			},
+			args: args{
+				ctx: context.Background(),
+				id:  12,
+			},
+			want: fmt.Sprintf("time=\"%s\" level=error msg=\"Error while sending request message: error\" connection=12 service=tcp-client\n",
+				time.Now().Format("2006-01-02T15:04:05-07:00")),
+		},
+		{
 			name: "Challenge Message wasn't received",
 			fields: func() fields {
 				clientMock := &clientMocks.ClientProvider{}
@@ -72,6 +97,7 @@ func TestWowService_startWork(t *testing.T) {
 
 				clientMock.On("Run", mock.Anything).Return(tConn, nil)
 				clientMock.On("CloseConn", tConn).Return()
+				clientMock.On("SendMessage", mock.Anything, tConn, []byte("{\"request_id\":\"\",\"message_type\":\"request\",\"message_string\":\"\",\"difficulty\":0}\n")).Return(nil)
 				clientMock.On("ReceiveMessage", mock.Anything, tConn).Return("message", errors.New("error"))
 
 				return fields{
@@ -97,6 +123,7 @@ func TestWowService_startWork(t *testing.T) {
 
 				clientMock.On("Run", mock.Anything).Return(tConn, nil)
 				clientMock.On("CloseConn", tConn).Return()
+				clientMock.On("SendMessage", mock.Anything, tConn, []byte("{\"request_id\":\"\",\"message_type\":\"request\",\"message_string\":\"\",\"difficulty\":0}\n")).Return(nil)
 				clientMock.On("ReceiveMessage", mock.Anything, tConn).Return("message", nil)
 
 				return fields{
@@ -122,7 +149,8 @@ func TestWowService_startWork(t *testing.T) {
 
 				clientMock.On("Run", mock.Anything).Return(tConn, nil)
 				clientMock.On("CloseConn", tConn).Return()
-				clientMock.On("ReceiveMessage", mock.Anything, tConn).Return("{\"message_type\":\"challenge\",\"message_string\":\"Find a string that, when hashed, can be proofed 1\",\"difficulty\":10}", nil)
+				clientMock.On("SendMessage", mock.Anything, tConn, []byte("{\"request_id\":\"\",\"message_type\":\"request\",\"message_string\":\"\",\"difficulty\":0}\n")).Return(nil)
+				clientMock.On("ReceiveMessage", mock.Anything, tConn).Return("{\"request_id\":\"1q2w3e\",\"message_type\":\"challenge\",\"message_string\":\"Find a string that, when hashed, can be proofed 1\",\"difficulty\":10}", nil)
 
 				challengeMock.On("SetDifficulty", 10).Return()
 				challengeMock.On("GenerateSolution", mock.Anything, "Find a string that, when hashed, can be proofed 1").Return("123")
@@ -139,7 +167,7 @@ func TestWowService_startWork(t *testing.T) {
 				ctx: context.Background(),
 				id:  12,
 			},
-			want: fmt.Sprintf("time=\"%s\" level=debug msg=\"Message from server received: {\\\"message_type\\\":\\\"challenge\\\",\\\"message_string\\\":\\\"Find a string that, when hashed, can be proofed 1\\\",\\\"difficulty\\\":10}\" connection=12 service=tcp-client\ntime=\"%s\" level=info msg=\"Found solution: 123\" connection=12 service=tcp-client\ntime=\"%s\" level=error msg=\"Error while sending message: error\" connection=12 service=tcp-client\n",
+			want: fmt.Sprintf("time=\"%s\" level=debug msg=\"Message from server received: {\\\"request_id\\\":\\\"1q2w3e\\\",\\\"message_type\\\":\\\"challenge\\\",\\\"message_string\\\":\\\"Find a string that, when hashed, can be proofed 1\\\",\\\"difficulty\\\":10}\" connection=12 service=tcp-client\ntime=\"%s\" level=info msg=\"Found solution: 123\" connection=12 service=tcp-client\ntime=\"%s\" level=error msg=\"Error while sending message: error\" connection=12 service=tcp-client\n",
 				time.Now().Format("2006-01-02T15:04:05-07:00"), time.Now().Format("2006-01-02T15:04:05-07:00"), time.Now().Format("2006-01-02T15:04:05-07:00")),
 		},
 	}

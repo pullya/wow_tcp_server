@@ -35,11 +35,13 @@ func main() {
 
 	server := server.New(config.BuildPort(config.Config.Port), time.Millisecond*time.Duration(config.Config.Timeout))
 
-	storage := storage.New(storage.WordsOfWisdom)
+	WOWstorage := storage.New(storage.WordsOfWisdom)
 
 	challenge := app.NewChallenge(config.Config.Difficulty)
 
-	app := app.New(&server, storage, challenge)
+	requeststore := storage.NewRequestStore(storage.ShardKey)
+
+	app := app.New(&server, WOWstorage, requeststore, challenge)
 
 	err := app.Run(ctx)
 	if err != nil {

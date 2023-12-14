@@ -17,19 +17,24 @@ var connCnt = 0
 
 type Apper interface {
 	doProofOfWork(ctx context.Context, id int) error
+	sendChallenge(ctx context.Context, conn net.Conn, id int) error
+	validatePOW(ctx context.Context, clientResponse model.Message, id int) error
+	sendWOW(ctx context.Context, conn net.Conn, uid string, id int) error
 }
 
 type App struct {
-	server    server.ServerProvider
-	storage   storage.Storageer
-	challenge Challenger
+	server       server.ServerProvider
+	storage      storage.Storageer
+	requeststore storage.Requester
+	challenge    Challenger
 }
 
-func New(tcpServer server.ServerProvider, storage storage.Storageer, challenge Challenger) App {
+func New(tcpServer server.ServerProvider, storage storage.Storageer, requeststore storage.Requester, challenge Challenger) App {
 	return App{
-		server:    tcpServer,
-		storage:   storage,
-		challenge: challenge,
+		server:       tcpServer,
+		storage:      storage,
+		requeststore: requeststore,
+		challenge:    challenge,
 	}
 }
 
@@ -68,41 +73,63 @@ func (a *App) handleConnection(ctx context.Context, conn net.Conn, id int) {
 		config.Logger.WithField("connection", id).Errorf("Error while setting timeout: %v", err)
 		return
 	}
-	if err := a.doProofOfWork(ctx, conn, id); err != nil {
+
+	request, err := a.server.ReceiveMessage(ctx, conn)
+	if err != nil {
+		config.Logger.WithField("connection", id).Errorf("Error reading request: %v", err)
 		return
 	}
 
-	wow := a.storage.GetRandomWOW(ctx)
-	wowMessage := model.PrepareMessage(model.MessageTypeWow, wow, 0)
+	config.Logger.WithField("connection", id).Debugf("Request from client received: %s", request)
 
-	config.Logger.WithField("connection", id).Debugf("Prepared response: %s", string(wow))
+	clientRequest, err := model.ParseServerMessage(request)
+	if err != nil {
+		config.Logger.WithField("connection", id).Errorf("Unable to unmarshal client message: %v\n", err)
+		return
+	}
 
-	if err := a.server.SendMessage(ctx, conn, wowMessage.AsJsonString()); err != nil {
-		config.Logger.WithField("connection", id).Errorf("Error while sending response: %v", err)
+	switch clientRequest.MessageType {
+	case model.MessageTypeRequest:
+		if err := a.sendChallenge(ctx, conn, id); err != nil {
+			config.Logger.WithField("connection", id).Errorf("Error while sending challenge: %v", err)
+			return
+		}
+	case model.MessageTypeSolution:
+		if err := a.validatePOW(ctx, clientRequest, id); err != nil {
+			config.Logger.WithField("connection", id).Errorf("Failed to validate POW: %v", err)
+			return
+		}
+		if err = a.sendWOW(ctx, conn, clientRequest.RequestID, id); err != nil {
+			return
+		}
+	default:
+		config.Logger.WithField("connection", id).Errorf("Unknown message type: %s", clientRequest.MessageType)
 		return
 	}
 }
 
-func (a *App) doProofOfWork(ctx context.Context, conn net.Conn, id int) error {
-	challengeMessage := model.PrepareMessage(model.MessageTypeChallenge, generatePOWChallenge(id), a.challenge.Difficulty())
+func (a *App) sendChallenge(ctx context.Context, conn net.Conn, id int) error {
+	uid := storage.GenUID()
+	challengeMessage := model.PrepareMessage(uid, model.MessageTypeChallenge, generatePOWChallenge(uid), a.challenge.Difficulty())
 
 	if err := a.server.SendMessage(ctx, conn, challengeMessage.AsJsonString()); err != nil {
-		config.Logger.WithField("connection", id).Errorf("Error while sending challenge: %v", err)
 		return err
 	}
 
-	response, err := a.server.ReceiveMessage(ctx, conn)
+	a.requeststore.Add(ctx, uid)
+
+	return nil
+}
+
+func (a *App) validatePOW(ctx context.Context, clientResponse model.Message, id int) error {
+	ok, err := a.requeststore.Get(ctx, clientResponse.RequestID)
 	if err != nil {
-		config.Logger.WithField("connection", id).Errorf("Error reading response: %v", err)
+		config.Logger.WithField("connection", id).Errorf("Failed to find request '%s' in store: %v", clientResponse.RequestID, err)
 		return err
 	}
-
-	config.Logger.WithField("connection", id).Infof("Client response received: %s", string(response))
-
-	clientResponse, err := model.ParseServerMessage(response)
-	if err != nil {
-		config.Logger.WithField("connection", id).Errorf("Unable to unmarshal client message: %v\n", err)
-		return err
+	if ok {
+		config.Logger.WithField("connection", id).Errorf("This POW was already handled '%s'", clientResponse.RequestID)
+		return errors.New("Double work")
 	}
 
 	solution, err := clientResponse.GetUint64()
@@ -111,7 +138,7 @@ func (a *App) doProofOfWork(ctx context.Context, conn net.Conn, id int) error {
 		return errors.New("unable to parse solution")
 	}
 
-	if !a.challenge.IsValid(generatePOWChallenge(id), solution) {
+	if !a.challenge.IsValid(generatePOWChallenge(clientResponse.RequestID), solution) {
 		config.Logger.WithField("connection", id).Error("PoW verification failed. Closing connection")
 		return errors.New("pow verification failed")
 	}
@@ -121,6 +148,25 @@ func (a *App) doProofOfWork(ctx context.Context, conn net.Conn, id int) error {
 	return nil
 }
 
-func generatePOWChallenge(cnt int) string {
-	return fmt.Sprintf("%s %d", config.Config.ProofString, cnt)
+func (a *App) sendWOW(ctx context.Context, conn net.Conn, uid string, id int) error {
+	wow := a.storage.GetRandomWOW(ctx)
+	wowMessage := model.PrepareMessage(uid, model.MessageTypeWow, wow, 0)
+
+	config.Logger.WithField("connection", id).Debugf("Prepared response: %s", string(wow))
+
+	if err := a.server.SendMessage(ctx, conn, wowMessage.AsJsonString()); err != nil {
+		config.Logger.WithField("connection", id).Errorf("Error while sending response: %v", err)
+		return err
+	}
+
+	if err := a.requeststore.Set(ctx, uid); err != nil {
+		config.Logger.WithField("connection", id).Errorf("Failed to set status for request '%s': %v", uid, err)
+		return err
+	}
+
+	return nil
+}
+
+func generatePOWChallenge(cnt string) string {
+	return fmt.Sprintf("%s %s", config.Config.ProofString, cnt)
 }
